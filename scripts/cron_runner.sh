@@ -73,10 +73,22 @@ run_claude() {
   # 判断层会因额度/鉴权临时 403。静默失败的后果是"看起来在跑，其实什么都没产出"，
   # 所以重试 + 失败必须可见。
   for attempt in 1 2 3; do
-    out=$("$CLAUDE" -p "$(cat "$prompt_file")" \
+    # 两个坑：
+    #  1) 直接把规范文档塞进 -p，模型会当成"一份文档"来读，回你一句
+    #     "我看到了这个文件，你想让我做什么？" —— 必须显式下达执行指令
+    #  2) 不重定向 stdin 会卡在等标准输入（no stdin data received in 3s）
+    out=$("$CLAUDE" -p "立即执行下面这份工作流程规范。这不是待讨论的文档，\
+是你现在就要完成的任务：读取数据、产出文件、按规范末尾的要求发邮件，\
+最后在 stdout 打印成功标记。不要询问、不要复述规范、不要征求确认。
+
+--- 规范开始 ---
+$(cat "$prompt_file")
+--- 规范结束 ---
+
+现在开始执行。" \
           --allowedTools "$TOOLS" \
           --permission-mode acceptEdits \
-          --add-dir "$ROOT" 2>&1)
+          --add-dir "$ROOT" < /dev/null 2>&1)
     if echo "$out" | grep -q "$marker"; then
       echo "$out" | tail -20
       echo "✅ $marker"
