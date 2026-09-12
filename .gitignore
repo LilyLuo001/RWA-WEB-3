@@ -1,5 +1,8 @@
 config/credentials.env
 data/
+# 例外：晨报是值得存档的产出（原始抓取数据/草稿/审计日志仍然排除）
+!data/digests/
+!data/digests/*.md
 state/
 *.pyc
 __pycache__/
