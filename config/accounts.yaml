@@ -1,119 +1,254 @@
 # ============================================================
-# 监听名单（已核验，2026-09-11）
-# 每一条都有来源 URL。没核实过的 handle 不进这个文件。
+# 监听名单
+# 最后体检：2026-09-12（scripts/vet_accounts.py）
+#
+# ⚠️ 教训：第一版的"已核验"只验证了 handle 在某个榜单里出现过，
+#    没验证账号是否还活着、是否真的讲 RWA。结果 15 个里 4 个是死号
+#    （最久的 923 天没发帖），2 个活跃但一条 RWA 都不发。
+#    现在的规则：入库必须过 vet_accounts.py，字段 last_post_days /
+#    rwa_ratio 由脚本写入，不手填。
 # ============================================================
 #
-# tier 说明（影响打分权重与推送优先级）:
-#   core   RWA 正核心，每条都看，最高优先级
-#   adj    相邻领域（DeFi/机构/合规），高相关时看
-#   data   数据源账号，用于热点检测而非评论机会
-#   zh     中文圈，你的主要互动池（若你用中文创作）
+# tier:
+#   issuer  项目官方号。发自家产品=广告，**不计入叙事收敛**，但适合评论
+#   kol     真人分析者/评论者。这是"专家大V"的真正定义
+#   data    数据源账号，用于热点检测
+#   zh      中文圈
+#   watch   只用于热点检测，**不作为评论目标**（主题不符但有信息量）
+#
+# 字段:
+#   handle/name/tier/covers/source  必填
+#   last_post_days  距最新一帖天数（脚本写）
+#   rwa_ratio       最近 20 帖里 RWA 相关比例（脚本写）
+#   vetted_at       体检日期（脚本写）
 
 accounts:
-  # ---------- data：数据/新闻源 ----------
-  - handle: "RWA_xyz"
-    name: "RWA.xyz"
-    tier: "data"
-    covers: "代币化 RWA 数据分析平台官方号，追踪链上国债/私募信贷等总量数据"
-    source: "https://x.com/RWA_xyz"
-
-  - handle: "RWAwatchlist_"
-    name: "Real World Asset Watchlist"
-    tier: "data"
-    covers: "RWA 每日新闻、数据与观点聚合"
-    source: "https://x.com/RWAwatchlist_"
-
-  # ---------- core：RWA 核心 ----------
-  - handle: "RWA_Alpha"
-    name: "RWA Alpha"
-    tier: "core"
-    covers: "RWA 赛道评论与账号盘点（发布过 Top 5 RWA Influencers 榜单）"
-    source: "https://x.com/RWA_Alpha/status/1906476248110440949"
-
-  - handle: "ZssBecker"
-    name: "ZssBecker"
-    tier: "core"
-    covers: "被 RWA_Alpha 列入 Top 5 RWA Influencers；市场观点+大胆判断"
-    followers: 1300000   # 来源称约 1.3M，未经第二来源核实
-    source: "https://x.com/RWA_Alpha/status/1906476248110440949"
-
-  # ---------- core：RWA 头部项目官方号 ----------
-  - handle: "Ondo"
-    name: "Ondo Finance"
-    tier: "core"
-    covers: "代币化国债/股票头部发行方（OUSG/USDY），RWA 叙事风向标"
-    source: "https://x.com/Ondo"
-
-  - handle: "Securitize"
-    name: "Securitize"
-    tier: "core"
-    covers: "BlackRock BUIDL 的代币化平台，监管合规向公告多"
-    source: "https://x.com/Securitize"
-
-  - handle: "centrifuge"
-    name: "Centrifuge"
-    tier: "core"
-    covers: "链上资产管理基础设施（JTRSY 等），Coinbase 战略投资"
-    source: "https://x.com/centrifuge"
-
-  - handle: "maplefinance"
-    name: "Maple Finance"
-    tier: "core"
-    covers: "链上信贷/机构借贷，机构级 RWA 叙事样本"
-    followers: 61400    # 来源搜索结果标注
-    source: "https://x.com/maplefinance"
-
-  # ---------- adj：相邻领域 ----------
-  - handle: "rwasummit"
-    name: "Real-World Asset Summit"
-    tier: "adj"
-    covers: "RWA 行业峰会官方号，行业人物观点转发密集"
-    source: "https://x.com/rwasummit"
-
-  - handle: "ThorHartvigsen"
-    name: "Thor Hartvigsen"
-    tier: "adj"
-    covers: "DeFi 研究员（DeFiLlama 背景），链上数据角度"
-    source: "https://x.com/XiongDa_CN/status/1780120425307222325"
-    note: "2026-09-11 连续 3 轮抓取 0 条——账号可能改名/受限，待人工核对 x.com/ThorHartvigsen 是否存在"
-
+  # ---------- kol：真人，评论主战场 ----------
   - handle: "arthur0x"
-    name: "Arthur (DeFi investor)"
-    tier: "adj"
-    covers: "加密/DeFi 投资人，DeFi 策略与市场结构观点"
-    source: "https://x.com/XiongDa_CN/status/1780120425307222325"
-
-  - handle: "TaschaLabs"
-    name: "Tascha"
-    tier: "adj"
-    covers: "经济学博士，从宏观/传统金融视角评论加密"
-    source: "https://x.com/XiongDa_CN/status/1780120425307222325"
-
-  # ---------- zh：中文互动池 ----------
-  - handle: "rwa_btc"
-    name: "RWA中文社區"
-    tier: "zh"
-    covers: "中文 RWA 社区，覆盖证券/房产/股权/黄金代币化"
-    source: "https://x.com/rwa_btc"
+    name: "Arthur"
+    tier: "kol"
+    covers: "代币化证券的监管/合规拷问，DeFi 市场结构。名单里唯一持续输出独立判断的人"
+    source: "https://x.com/arthur0x"
+    last_post_days: 1
+    rwa_ratio: 0.3
+    vetted_at: "2026-09-12"
 
   - handle: "0xNing0x"
     name: "NingNing"
     tier: "zh"
     covers: "华语数据型研究：稳定币、CeDeFi、周期分析"
-    followers: 28000
     source: "https://www.panewslab.com/zh/articles/7ot0943gl1do"
+    last_post_days: 7
+    rwa_ratio: 0.1
+    vetted_at: "2026-09-12"
 
+  # ---------- issuer：项目官方号（评论目标，但不算收敛信号）----------
+  - handle: "Ondo"
+    name: "Ondo Finance"
+    tier: "issuer"
+    covers: "代币化国债(USDY)/股票头部发行方。发帖密度高，评论区常年只有附和，空位多"
+    source: "https://x.com/Ondo"
+    last_post_days: 0
+    rwa_ratio: 0.46
+    vetted_at: "2026-09-12"
+
+  - handle: "Securitize"
+    name: "Securitize"
+    tier: "issuer"
+    covers: "BlackRock BUIDL 的代币化平台。合规向内容多，常引用第三方调研（可溯源）"
+    source: "https://x.com/Securitize"
+    last_post_days: 0
+    rwa_ratio: 0.75
+    vetted_at: "2026-09-12"
+
+  - handle: "centrifuge"
+    name: "Centrifuge"
+    tier: "issuer"
+    covers: "链上资产管理基础设施(JTRSY/JAAA)。会发真实链上数据，回复数普遍偏低=位置好"
+    source: "https://x.com/centrifuge"
+    last_post_days: 0
+    rwa_ratio: 0.67
+    vetted_at: "2026-09-12"
+
+  - handle: "maplefinance"
+    name: "Maple Finance"
+    tier: "issuer"
+    covers: "链上信贷/机构借贷(syrupUSDC)。月度协议收入公开，是少数给真实数字的发行方"
+    source: "https://x.com/maplefinance"
+    last_post_days: 0
+    rwa_ratio: 0.27
+    vetted_at: "2026-09-12"
+
+  # ---------- data：数据源 ----------
+  - handle: "RWA_xyz"
+    name: "RWA.xyz"
+    tier: "data"
+    covers: "代币化 RWA 权威数据平台。发帖不频繁，但它的数字是全行业引用基准"
+    source: "https://x.com/RWA_xyz"
+    last_post_days: 70
+    rwa_ratio: 0.3
+    vetted_at: "2026-09-12"
+    note: "发帖低频，主要价值是 app.rwa.xyz 看板而非推文"
+
+  - handle: "RWAwatchlist_"
+    name: "Real World Asset Watchlist"
+    tier: "data"
+    covers: "RWA 新闻聚合"
+    source: "https://x.com/RWAwatchlist_"
+    last_post_days: 15
+    rwa_ratio: 0.6
+    vetted_at: "2026-09-12"
+
+  - handle: "rwasummit"
+    name: "Real-World Asset Summit"
+    tier: "data"
+    covers: "行业峰会官方号，会前会后密集转发从业者观点，是挖新人的入口"
+    source: "https://x.com/rwasummit"
+    last_post_days: 11
+    rwa_ratio: 0.8
+    vetted_at: "2026-09-12"
+
+  # ---------- watch：只做热点检测，不评论 ----------
   - handle: "BTCdayu"
     name: "大宇"
-    tier: "zh"
-    covers: "华语头部加密 KOL，内容社区，泛市场话题"
+    tier: "watch"
+    covers: "华语头部加密 KOL。发帖极频繁但主题是 meme 币/生活，RWA 占比 13%"
     source: "https://x.com/BiteyeCN/status/1816043435771744455"
+    last_post_days: 0
+    rwa_ratio: 0.12
+    vetted_at: "2026-09-12"
+    note: "降级为 watch：用于感知华语圈情绪，不是评论目标"
+
+  - handle: "ZssBecker"
+    name: "ZssBecker"
+    tier: "watch"
+    covers: "大账号但内容是山寨币行情，抓到的 11 条里 RWA 相关 0 条"
+    source: "https://x.com/RWA_Alpha/status/1906476248110440949"
+    last_post_days: 2
+    rwa_ratio: 0.09
+    vetted_at: "2026-09-12"
+    note: "降级为 watch：来源榜单把它列为 RWA 影响力第一，实测完全不符"
+
+  # ---------- kol（2026-09-12 挖掘并体检通过）----------
+  # 来源：对已抓取帖子做 @提及 频次分析，不是抄榜单。全部实抓体检通过。
+  # ⚠️ 注意：这批多为发行方高管——真人、有实质输出，但非完全独立第三方。
+  #    做「叙事收敛」判定时按其雇主的 issuer 身份折算，不要当独立信源。
+  - handle: "carlosdomingo"
+    name: "Carlos Domingo"
+    tier: "kol"
+    covers: "Securitize CEO。AMC 代币 60 倍脱钩那个数据出自他；频繁上播客做实质分析"
+    source: "被 @Securitize 提及 ×2"
+    last_post_days: 2
+    rwa_ratio: 0.58
+    vetted_at: "2026-09-12"
+
+  - handle: "iandebode"
+    name: "Ian De Bode"
+    tier: "kol"
+    covers: "Ondo。9 个月前判断「2026 是代币化股票之年」，敢下明确判断"
+    source: "被 @Ondo 提及"
+    last_post_days: 8
+    rwa_ratio: 0.44
+    vetted_at: "2026-09-12"
+
+  - handle: "syrupsid"
+    name: "Sid (Maple)"
+    tier: "kol"
+    covers: "Maple。讲运营风险 vs 信用风险，链上信贷实操视角"
+    source: "被 @maplefinance 提及"
+    last_post_days: 9
+    rwa_ratio: 0.67
+    vetted_at: "2026-09-12"
+
+  - handle: "grahamfergs"
+    name: "Graham Ferguson"
+    tier: "kol"
+    covers: "Securitize 生态负责人。公开拆解「代币是跟踪股票还是就是股票」"
+    source: "被 @Securitize 提及"
+    last_post_days: 0
+    rwa_ratio: 0.33
+    vetted_at: "2026-09-12"
+
+  - handle: "itsbhaji"
+    name: "Bhaji"
+    tier: "kol"
+    covers: "Centrifuge。资产管理公司上链的一线视角，Consensus 讲者"
+    source: "被 @centrifuge 提及 ×2"
+    last_post_days: 1
+    rwa_ratio: 0.3
+    vetted_at: "2026-09-12"
+
+  - handle: "Observatory13"
+    name: "Securitize President"
+    tier: "kol"
+    covers: "Securitize 总裁。即时结算/跨资产借贷方向"
+    source: "被 @Securitize 提及"
+    last_post_days: 1
+    rwa_ratio: 0.82
+    vetted_at: "2026-09-12"
+
+  - handle: "Unchained_pod"
+    name: "Unchained"
+    tier: "data"
+    covers: "Laura Shin 的播客。RWA 高管访谈的主要出口，是挖新人的入口"
+    source: "被 @Securitize 提及"
+    last_post_days: 0
+    rwa_ratio: 0.3
+    vetted_at: "2026-09-12"
+
+  # ---------- reg：监管一手信源（2026-09-12 挖掘）----------
+  # 从 @Observatory13 的推文里挖出。对合规角度的账号，这是最高价值的信源：
+  # 不用等媒体转述，直接看原文，且引用监管原文永远不会有数字错误。
+  - handle: "SECGov"
+    name: "U.S. SEC"
+    tier: "reg"
+    covers: "SEC 官方。正在推进加密资产发行制度立规（不再等 CLARITY 法案）"
+    source: "被 @Observatory13 提及 ×3"
+    last_post_days: 1
+    rwa_ratio: 0.89
+    vetted_at: "2026-09-12"
+
+  - handle: "SECPaulSAtkins"
+    name: "Paul Atkins (SEC 主席)"
+    tier: "reg"
+    covers: "SEC 主席。公开表态「监管不再是逆风」，推动市场上链"
+    source: "被 @Observatory13 提及"
+    last_post_days: 4
+    rwa_ratio: 0.56
+    vetted_at: "2026-09-12"
+
+  - handle: "FINRA"
+    name: "FINRA"
+    tier: "reg"
+    covers: "监管通知 26-15（规则 5310 现代化），Securitize 已提交评论信"
+    source: "被 @Observatory13 提及"
+
+  # ---------- media：垂直记者/媒体，挖人入口 ----------
+    last_post_days: 10
+    rwa_ratio: 0.33
+    vetted_at: "2026-09-12"
+
+
+
+
 
 # ============================================================
-# 核验过但明确排除的（记录理由，避免下次重复调研）：
-#   hebi555 / lubi366 / gigiz_eth / yyds123888 / zhuanfgghjnb
-#     —— PANews 华语榜上榜，但主题是撸毛/空投/喊单，与 RWA niche 不符
-#     来源：同上 PANews 链接
-#   evilcos —— 安全领域（慢雾），非 RWA
-#   mert / saylor —— Kaito 榜单头部但属泛加密，非 RWA
+# 2026-09-12 体检移除（保留记录，避免重复调研）
+#
+#   rwa_btc         最新发帖 923 天前 —— 死号
+#   TaschaLabs      最新发帖 614 天前 —— 死号
+#   RWA_Alpha       最新发帖 518 天前 —— 死号。讽刺的是它正是
+#                   "Top 5 RWA 影响力账号"榜单的来源
+#   ThorHartvigsen  连续多轮抓取 0 条，handle 疑似已改名/注销
+#   DanielGKuhn     记者，但抓到 12 条 RWA 占比 0% —— 体检拦下
+#   andrebeganski   记者，RWA 占比 8% —— 体检拦下
+#
+# 早前排除（主题不符）:
+#   hebi555 / lubi366 / gigiz_eth / yyds123888 / zhuanfgghjnb —— 撸毛/空投/喊单
+#   evilcos —— 安全领域（慢雾）
+#   mert / saylor —— 泛加密，非 RWA
+#
+# 待补（下一步）: kol 层只有 2 个，太薄。扩充方向见 HANDOFF.md
+#   —— 从 arthur0x / rwasummit 的回复对象和被引用者里挖真人，
+#      而不是再去抄榜单。目标 8-12 个 kol，优先 5K-50K 粉。
 # ============================================================

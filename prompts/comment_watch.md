@@ -1,107 +1,109 @@
-# comment_watch — 高频评论机会扫描
+# comment_watch — 评论机会扫描
 
-由 cron 每 `settings.yaml: comment_watch.interval_minutes` 触发一次。
+由 cron 通过 `claude -p` 无头调用（每 2 小时）。工作目录 `~/rwa-signal`。
 
 ## 输入
 
-1. 读 `config/settings.yaml`（identity、scoring_weights、safety）
-2. 读 `config/accounts.yaml`（tier 分级）
-3. 读 `state/seen_posts.json`（已处理过的帖子 id，去重用）
-4. 读 `data/raw/` 当天 jsonl 中**未见过**的帖子
-5. 读 `state/quota.json`（今日已用回复额度）
+用 `.venv/bin/python` + `scripts/fetch_posts.py:read_raw(36)` 读最近 36 小时、
+`source == "browser"` 的帖子。再读 `state/commented.json`（已处理过的 post_id）
+和 `state/quota.json`（今日剩余回复额度）。
 
-如果 `data/raw/` 当天文件不存在或没有新帖 → 输出一行"无新帖"后结束，**不要**编造内容。
+没有新帖 → 打印 `WATCH_OK 无新机会` 后结束。**不要编造。**
 
-## 第一步：硬性过滤（先扔掉绝大多数）
+---
 
-直接丢弃，不打分：
-- 帖子年龄 > `max_post_age_minutes`（评论区位置已经没了）
-- 纯转发、纯 quote-tweet 且无原创文字
-- "gm"、纯图片、纯公告链接、纯价格播报
-- 作者是 `safety.never_reply_to` 里的
-- 今日额度已用尽（`quota.json` 达到 `ramp_schedule` 当周上限）→ 只记录机会，不生成草稿，并提示额度已满
+## 关于时间窗口（重要，不要照搬"抢前排"的直觉）
 
-## 第二步：打分（0-100）
+当前架构是逐个轮询 profile 页，**帖子到手时通常已经 1–12 小时**。
+`max_post_age_minutes: 90` 在这个架构下几乎永远命中 0 条——不要用它当硬门槛。
 
-按 `scoring_weights` 加权。**gap 是最难也最重要的一项。**
+**实际可用的判断**：一条 8 小时前、只有 4 条回复的帖子，比一条 1 小时前、
+已经 60 条回复的帖子位置好得多。**决定因素是「剩余空位」，不是「新鲜度」。**
 
-- **velocity（上升速度）**：互动数 ÷ 帖子年龄（分钟）。对比该作者近 20 条的中位数，看是否是异常值。
-- **reach（作者影响力）**：按 tier（core > zh > adj > data）+ 已知粉丝量。**粉丝数未核实的不参与该项计算，按 tier 兜底。**
-- **gap（评论区空位）**：必须实际读已有回复。
-  - 明显的第一反应还没人说 → 高分
-  - 前几条已被高质量回复占据，但有一个具体角度没人碰 → 中分
-  - 所有显而易见的角度都被占了 → **低分，直接丢弃**。不要跟风复读。
-- **relevance（相关度）**：与 `identity.niche` 和 `identity.angle` 的贴合度。只有 `angle` 能让你说出别人说不出的话时才算高相关。
+超过 36 小时的不看（话题已经过去）。
 
-低于 `min_score` 的丢弃，不输出。
+---
 
-## 第三步：起草（`drafts_per_opportunity` 条，角度必须互不相同）
+## 硬性过滤（先扔掉绝大多数）
 
-每条草稿走一个不同的策略，标注是哪种：
+直接丢弃：
+- 纯转发、纯图片、纯链接公告、纯价格播报、"gm"
+- 与 RWA / 代币化 / 链上金融**无关**的帖子。
+  注意 `@BTCdayu` `@ZssBecker` 大量发 meme 币和生活内容，**这些一律跳过**，
+  它们在名单里只用于热点检测，不是评论目标
+- 已在 `state/commented.json` 里的
+- 今日额度已用尽 → 仍然产出草稿，但在输出里标注「额度已满，明天再发」
 
-| 策略 | 说明 |
-|---|---|
-| `信息增量` | 补一个具体数字、先例、反例或数据来源。**数字必须来自原帖或你可核实的来源，不许编。** |
-| `重新命名` | 说出大家感觉到但没人讲清的东西，给它一个名字 |
-| `压缩` | 用一句话讲完原帖两百字的意思 |
-| `结构类比` | 连到一个看似无关但结构相同的领域（这是 `identity.angle` 的主战场） |
-| `具体反驳` | 有礼貌地不同意，带论据。不要用"但是我觉得" |
-| `补盲区` | 指出原帖漏掉的关键一方（托管方、监管、清算、二级市场流动性…） |
+## 打分（0–100）
 
-### 神评论的判定测试
+- **空位（权重最高）**：必须真的看原帖的现有回复。用浏览器读也行，或从
+  `metrics.reply` 数配合帖子年龄估算拥挤度。
+  - 回复数少（<10）且话题有深度 → 高分
+  - 回复数多但全是附和（"bullish" "great thread"）→ 中高分，因为有质量空位
+  - 明显角度都被高质量回复占了 → **丢弃，不要跟风复读**
+- **相关度**：与 `identity.niche` / `identity.angle` 的贴合度
+- **可增量**：你手上有没有原帖没给的事实/数字/先例。没有 → 低分
+- **作者影响力**：按 tier 和实际互动量
 
-> **这条评论能不能原封不动贴到另一条帖子下面？**
-> 如果能 —— 它是水评论，删掉重写。
+低于 62 分不输出。
 
-### 明确禁止（出现即重写）
+## 起草
 
-- 赞美/同意："说得好"、"great point"、"this"、"确实"
-- 复述原帖：把作者的话换个说法再讲一遍
-- 只有 emoji 或只有感叹
-- 自我推广："我也在做 RWA 相关内容"
-- 万能聪明话：适用于任何帖子的漂亮句子
-- 钓回复的空洞提问："你怎么看？"
-- 编造数字、编造先例、编造引用
+**每个机会 1–2 条草稿**，标注策略：
+`信息增量` `补盲区` `重新命名` `压缩` `具体反驳` `结构类比`
 
-### 语言
+**语言**：`data/raw` 里的文本可能是 X 的自动翻译。
+`Ondo` `Securitize` `centrifuge` `maplefinance` `arthur0x` `RWA_xyz` 等账号
+**原文是英文，草稿必须用英文**。`rwa_btc` `0xNing0x` `BTCdayu` 用中文。
 
-按 `comment_watch.reply_language`。`match` = 跟随原帖语言。
-中文帖用中文回，英文帖用英文回 —— 混语言在评论区显得像机翻。
+**长度**：英文 ≤240 字符，中文 ≤100 字。
 
-### 长度
+**数字必须核实**：草稿里引用任何数字前，用 WebSearch 核一次一手来源，
+并在草稿旁注明来源。**编造数字是最严重的错误**——RWA 圈的人会抓。
 
-英文 ≤ 240 字符，中文 ≤ 100 字。评论区不是长文位置，长了没人读完。
+### 神评论判定测试
+> 这条评论能不能原封不动贴到另一条帖子下面？能 → 水评论，重写。
 
-## 第四步：输出
+### 禁止（出现即重写）
+赞美/同意（"说得好" "great point" "this"）、复述原帖、只有 emoji、
+自我推广、万能聪明话、空洞提问（"你怎么看？"）、**编造数字或先例**。
 
-写入 `data/drafts/YYYY-MM-DD-HHMM-comment.json`，每条含：
-`post_id`、`post_url`、`author`、`tier`、`score`、`分项打分`、`原帖摘要`、
-`已有高质量回复摘要`、`gap 判断理由`、`drafts[]`（策略标签 + 文本 + 字符数）、
-`expires_at`（超过就没必要发了）、`publish_cmd`
+---
 
-然后在对话里输出**紧凑**的待办（不要贴 JSON）：
+## 输出
 
-```
-⚡ N 个评论机会（额度剩余 X/Y）
-
-1. @author · 分数 · 帖子年龄
-   原帖：一句话摘要
-   空位：为什么还有位置
-   → A [信息增量] 草稿文本
-   → B [补盲区]   草稿文本
-   → C [压缩]     草稿文本
-   发 A: python3 scripts/publish.py --draft <id> --pick A
+### 1. 写草稿文件
+每个机会写一个 `data/drafts/YYYY-MM-DD-HHMM-<handle>.json`：
+```json
+{
+  "post_id": "...", "post_url": "https://x.com/<handle>/status/<id>",
+  "author": "<handle>", "tier": "...", "score": 74,
+  "post_summary": "...", "gap_reason": "为什么还有位置",
+  "drafts": [{"label": "A 信息增量", "text": "...", "chars": 180, "sources": ["..."]}],
+  "expires_at": "...", 
+  "publish_cmd": ".venv/bin/python scripts/publish.py --draft <id> --pick A --yes"
+}
 ```
 
-按分数降序。最多输出 5 个，其余写进文件即可。
+### 2. 更新 `state/commented.json`
+把处理过的 post_id 记进去（含时间戳）。
+**不要动 `state/quota.json`** —— 计数只在 `publish.py` 真正发出时增加。
 
-## 第五步：更新状态
+### 3. 高分即时推送
+有 ≥72 分的机会时，写一份简报到 `data/drafts/_latest_alert.md`（简洁，
+只含机会列表和草稿，不要 JSON），然后：
+```
+.venv/bin/python scripts/notify.py --send-file data/drafts/_latest_alert.md \
+  --subject "⚡ N 个评论机会 · @最高分账号"
+```
 
-- 把处理过的 post_id 追加进 `state/seen_posts.json`（含时间戳，保留最近 7 天）
-- **不要**在用户确认前增加 `state/quota.json` 的计数。计数在 `publish.py` 真正发出时增加。
+### 4. stdout 打印
+最后打印一行 `WATCH_OK <机会数>` 供 cron 日志核验。
+
+---
 
 ## 边界
 
-- 不自动发布。任何情况下都只写草稿。
-- 不编造帖子内容、互动数、粉丝数。数据缺失就标注缺失。
-- 名单为空（`accounts.yaml: []`）时，直接输出"名单未填充，跳过"并结束。
+- **绝不自动发布。** 任何情况下只写草稿。
+- 不编造帖子内容、互动数、粉丝数。
+- 名单为空时输出 `WATCH_OK 名单未填充` 并结束。
