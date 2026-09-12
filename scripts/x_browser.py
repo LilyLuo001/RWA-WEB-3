@@ -62,6 +62,24 @@ def is_logged_in(page, timeout_ms: int = 20000) -> bool:
         return False
 
 
+def get_own_handle(page) -> str | None:
+    """从侧边栏的 profile 链接读出当前登录账号的 handle。
+    避免要求用户手填 —— 手填的值和实际登录账号不一致时，
+    推串会静默发到错误的地方。"""
+    for sel in ('a[data-testid="AppTabBar_Profile_Link"]',
+                'nav a[href^="/"][role="link"]'):
+        try:
+            loc = page.locator(sel).first
+            href = loc.get_attribute("href", timeout=5000) or ""
+            h = href.strip("/")
+            if h and "/" not in h and h not in ("home", "explore", "notifications",
+                                                "messages", "i", "settings"):
+                return h
+        except Exception:
+            continue
+    return None
+
+
 def cmd_login(channel: str | None, timeout_min: int = 20) -> int:
     """打开浏览器等你登录。全程被动观察页面状态，绝不主动跳转 ——
     任何 goto 都会打断你正在填的表单并触发 X 风控（上一版的 bug 就在这）。"""

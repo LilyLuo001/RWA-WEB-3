@@ -126,35 +126,68 @@ def quote_post(page, author: str, post_id: str, text: str) -> tuple[bool, str]:
         return False, f"{type(e).__name__}: {e} · toast: {_toast_text(page)!r}"
 
 
-def send_thread(page, texts: list[str]) -> tuple[bool, str]:
-    """长推串（Thread）。逐条发送，每条之间随机间隔（算法友好的节奏）。
-    第 i 条回复第 i-1 条 —— 真实推串结构。"""
+def _newest_own_post_id(page, handle: str) -> str | None:
+    """发帖后回自己主页取最新一条的 id。
+
+    为什么不从 URL 抠：send_post 发完之后浏览器停在 /compose/post，
+    URL 里根本没有 /status/ —— 旧实现在这里必然拿到垃圾值，
+    导致推串第 2 条去访问一个拼接错误的地址。
+    """
+    import re
     try:
+        page.goto(f"https://x.com/{handle}", wait_until="domcontentloaded", timeout=30000)
+        page.wait_for_selector('article[data-testid="tweet"]', timeout=15000)
+        page.wait_for_timeout(1200)
+        for art in page.locator('article[data-testid="tweet"]').all()[:4]:
+            # 跳过置顶帖，它不是刚发的那条
+            try:
+                if "Pinned" in art.inner_text(timeout=2000) or "已置顶" in art.inner_text(timeout=2000):
+                    continue
+            except Exception:
+                pass
+            for a in art.locator('a[href*="/status/"]').all():
+                m = re.search(r"/status/(\d+)", a.get_attribute("href") or "")
+                if m:
+                    return m.group(1)
+    except Exception:
+        return None
+    return None
+
+
+def send_thread(page, texts: list[str], handle: str | None = None) -> tuple[bool, str]:
+    """长推串。逐条发送，第 i 条回复第 i-1 条。
+
+    handle 不传就自动探测当前登录账号 —— 手填的值和实际登录账号不一致时，
+    推串会静默发错地方。
+    """
+    from x_browser import get_own_handle
+    try:
+        if not handle:
+            handle = get_own_handle(page)
+        if not handle:
+            return False, "无法确定当前登录账号的 handle，推串中止（不猜）"
+
         ids: list[str] = []
         for i, text in enumerate(texts):
             if i == 0:
                 ok, detail = send_post(page, text)
             else:
-                # 从 URL 拿到上一条的 post id
-                prev = ids[-1]
-                ok, detail = send_reply_to_own(page, prev, text)
+                ok, detail = send_reply_to_own(page, ids[-1], text)
             if not ok:
-                return False, f"第 {i+1} 条失败: {detail}"
-            ids.append(_last_post_id_from_url(page))
-            page.wait_for_timeout(random.randint(4000, 9000))  # 串内间隔 4-9 秒
+                return False, f"第 {i+1} 条失败: {detail}（已发出 {len(ids)} 条，需手动收尾）"
+
+            pid = _newest_own_post_id(page, handle)
+            if not pid:
+                return False, (f"第 {i+1} 条已发出，但取不到它的 post id，"
+                               f"无法续接。已发 {len(ids)+1} 条，需手动收尾")
+            if pid in ids:
+                return False, (f"第 {i+1} 条取到的 id 与上一条相同（{pid}），"
+                               f"疑似未真正发出。中止以免重复发送")
+            ids.append(pid)
+            page.wait_for_timeout(random.randint(4000, 9000))
         return True, f"thread of {len(ids)}: {ids}"
     except Exception as e:
         return False, f"{type(e).__name__}: {e}"
-
-
-def _last_post_id_from_url(page) -> str:
-    """发送成功后，从浏览器 URL 提取刚发的帖子 id。"""
-    import re
-    m = re.search(r"/status/(\d+)", page.url or "")
-    if m:
-        return m.group(1)
-    # 兜底：返回 URL 本身作为标识（调用方用不了就报错）
-    return page.url
 
 
 def send_reply_to_own(page, prev_id: str, text: str) -> tuple[bool, str]:
