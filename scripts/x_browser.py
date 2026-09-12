@@ -106,6 +106,16 @@ def cmd_status(channel: str | None) -> int:
     if not PROFILE_DIR.exists() or not any(PROFILE_DIR.iterdir()):
         print("还没有会话。先运行：python3 scripts/x_browser.py --login")
         return 1
+    # profile 被别的进程占用时，Playwright 的表现和"未登录"一样。
+    # 先区分开，否则会误导人去重新登录（真实原因往往是上一轮的孤儿进程）。
+    import subprocess as _sp
+    _busy = _sp.run(["pgrep", "-f", f"user-data-dir={PROFILE_DIR}"],
+                    capture_output=True, text=True).stdout.split()
+    if _busy:
+        print(f"⚠️  profile 正被 {len(_busy)} 个进程占用（PID {' '.join(_busy)}）。")
+        print("    这不是登录失效。等它跑完，或清理孤儿进程：")
+        print(f"    pkill -f 'user-data-dir={PROFILE_DIR}'")
+        return 2
     pw, ctx = get_playwright_and_context(headless=True, channel=channel)
     page = ctx.pages[0] if ctx.pages else ctx.new_page()
     ok = is_logged_in(page)
