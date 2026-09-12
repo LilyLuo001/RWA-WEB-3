@@ -29,12 +29,35 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import CONFIG, DATA, load_accounts  # noqa: E402
 from fetch_posts import parse_ts  # noqa: E402
 
+# 关键词按 tier 分开：用产业黑话去筛学术账号，会把最有价值的账号judge成"跑题"。
+# （实测教训：BIS 讲 CPMI-IOSCO 的 FMI 第三方风险，与代币化结算高度相关，
+#   但一个"代币化"都不说，被原版规则判为 10% 跑题。）
 RWA_KW = re.compile(
     r"RWA|代币化|tokeniz|国债|treasur|T-bill|BUIDL|私募信贷|private credit|"
     r"合规|complian|SEC|证券|securit|机构|institution|on-?chain|链上|"
     r"stablecoin|稳定币|yield|收益|custod|托管|fund|基金",
     re.I,
 )
+
+ACAD_KW = re.compile(
+    r"liquidit|流动性|microstructur|微观结构|arbitrag|套利|spread|价差|"
+    r"adverse selection|逆向选择|price discovery|价格发现|settle|结算|"
+    r"market design|机制设计|monetary|货币政策|financial stability|金融稳定|"
+    r"working paper|工作论文|paper|研究|evidence|实证|model|模型|"
+    r"AMM|LVR|DeFi|clearing|清算|FMI|systemic|系统性|central bank|央行|"
+    r"disclosure|披露|regulat|监管|collateral|抵押|redemption|赎回",
+    re.I,
+)
+
+# acad / reg 取两个词表的并集：这两类账号既可能用产业语言，也可能用学术语言，
+# 只用其中一个都会误判（实测：只用学术词表会把 SEC 从 89% 打到 22%）。
+UNION_TIERS = {"acad", "reg"}
+
+
+def matches(text: str, tier: str) -> bool:
+    if tier in UNION_TIERS:
+        return bool(RWA_KW.search(text) or ACAD_KW.search(text))
+    return bool(RWA_KW.search(text))
 
 DEAD_DAYS = 30
 OFFTOPIC_RATIO = 0.30
@@ -63,7 +86,7 @@ def load_all_browser_posts() -> dict[str, list[dict]]:
     return by_handle
 
 
-def vet_one(posts: list[dict]) -> dict:
+def vet_one(posts: list[dict], tier: str = "") -> dict:
     """返回 {last_post_days, rwa_ratio, sample, verdict}"""
     now = datetime.now(timezone.utc)
     dts = [parse_ts(p.get("created_at")) for p in posts]
@@ -77,12 +100,13 @@ def vet_one(posts: list[dict]) -> dict:
 
     ratio = None
     if sample >= MIN_SAMPLE:
-        hits = sum(1 for p in own if RWA_KW.search(p.get("text") or ""))
+        hits = sum(1 for p in own if matches(p.get("text") or "", tier))
         ratio = round(hits / sample, 2)
 
+    dead_days = 90 if tier in ("acad", "reg", "data") else DEAD_DAYS
     if sample == 0:
         verdict = "无数据"
-    elif last_days is not None and last_days > DEAD_DAYS:
+    elif last_days is not None and last_days > dead_days:
         verdict = f"❌ 死号（{last_days} 天未发帖）"
     elif ratio is not None and ratio < OFFTOPIC_RATIO:
         verdict = f"⚠️  跑题（RWA 占比 {ratio:.0%}）→ 建议降级 watch"
@@ -108,14 +132,14 @@ def main() -> int:
     accounts = load_accounts()
     names = [a["handle"] for a in accounts] + list(args.candidates or [])
 
-    print(f"{'账号':<20}{'tier':<8}{'样本':>5}{'最新':>7}{'RWA占比':>9}  判定")
+    print(f"{'账号':<20}{'tier':<8}{'样本':>5}{'最新':>7}{'相关度':>9}  判定  (acad/reg 用产业+学术并集)")
     print("-" * 78)
     results: dict[str, dict] = {}
     tier_of = {a["handle"]: a.get("tier", "") for a in accounts}
     problems = []
     for h in names:
         posts = by_handle.get(h.lower(), [])
-        v = vet_one(posts)
+        v = vet_one(posts, tier_of.get(h, ""))
         results[h] = v
         last = f"{v['last_post_days']}d" if v["last_post_days"] is not None else "—"
         ratio = f"{v['rwa_ratio']:.0%}" if v["rwa_ratio"] is not None else "—"

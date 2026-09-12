@@ -10,11 +10,21 @@
 # ============================================================
 #
 # tier:
+# 四个内容分区（晨报按这个结构组织，名单也按这个结构覆盖）：
+#   ① 头条   → issuer / kol —— 赛道里正在吵的事
+#   ② 监管   → reg  —— 新规、征求意见、执法动向、监管者本人表态
+#   ③ 行业   → inst —— 银行/资管/交易所下场，谁真的投了钱
+#   ④ 学术   → acad —— 论文、央行研究、市场微观结构与流动性的严肃讨论
+#
+# tier:
 #   issuer  项目官方号。发自家产品=广告，**不计入叙事收敛**，但适合评论
-#   kol     真人分析者/评论者。这是"专家大V"的真正定义
-#   data    数据源账号，用于热点检测
+#   kol     真人分析者/评论者
+#   reg     监管机构与监管者本人（一手信源，引用原文不会有数字错误）
+#   inst    传统金融机构（判断"谁真的下场了"，区别于"谁在喊要下场"）
+#   acad    学术与政策研究（BIS/IMF/NBER/学者本人）—— 这是你的主场
+#   data    数据源账号
 #   zh      中文圈
-#   watch   只用于热点检测，**不作为评论目标**（主题不符但有信息量）
+#   watch   只用于热点检测，**不作为评论目标**
 #
 # 字段:
 #   handle/name/tier/covers/source  必填
@@ -165,7 +175,7 @@ accounts:
     tier: "kol"
     covers: "Securitize 生态负责人。公开拆解「代币是跟踪股票还是就是股票」"
     source: "被 @Securitize 提及"
-    last_post_days: 0
+    last_post_days: 1
     rwa_ratio: 0.33
     vetted_at: "2026-09-12"
 
@@ -205,7 +215,7 @@ accounts:
     covers: "SEC 官方。正在推进加密资产发行制度立规（不再等 CLARITY 法案）"
     source: "被 @Observatory13 提及 ×3"
     last_post_days: 1
-    rwa_ratio: 0.89
+    rwa_ratio: 1.0
     vetted_at: "2026-09-12"
 
   - handle: "SECPaulSAtkins"
@@ -214,7 +224,7 @@ accounts:
     covers: "SEC 主席。公开表态「监管不再是逆风」，推动市场上链"
     source: "被 @Observatory13 提及"
     last_post_days: 4
-    rwa_ratio: 0.56
+    rwa_ratio: 0.67
     vetted_at: "2026-09-12"
 
   - handle: "FINRA"
@@ -232,6 +242,69 @@ accounts:
 
 
 
+  # ---------- acad：学术与政策研究（你的主场）----------
+  # 加入理由：econ PhD 的比较优势在分析框架，不在信息速度。
+  # 这一层提供的是可引用的理论工具和严肃实证，圈内几乎无人覆盖。
+
+  - handle: "camharvey"
+    name: "Campbell Harvey"
+    tier: "watch"
+    covers: "Duke Fuqua 教授，NBER，前 AFA 主席。《DeFi and the Future of Finance》作者"
+    source: "Rational Reminder 播客 / Wikipedia"
+    last_post_days: 8
+    rwa_ratio: 0.08
+    vetted_at: "2026-09-12"
+
+  - handle: "BIS_org"
+    name: "Bank for International Settlements"
+    tier: "acad"
+    covers: "BIS。2026 年度报告专章论代币化与 unified ledger；Project Agorá / Project Pine。提出稳定币美元化对新兴市场货币主权的风险"
+    source: "https://www.bis.org/publ/arpdf/ar2026e3.htm"
+    last_post_days: 0
+    rwa_ratio: 0.4
+    vetted_at: "2026-09-12"
+
+  - handle: "IMFNews"
+    name: "IMF"
+    tier: "acad"
+    covers: "IMF。2026 年 Tokenized Finance 研究报告"
+    source: "IMF Notes Vol 2026 Issue 001"
+    last_post_days: 0
+    rwa_ratio: 0.36
+    vetted_at: "2026-09-12"
+
+
+  - handle: "a16zcrypto"
+    name: "a16z crypto"
+    tier: "acad"
+    covers: "研究团队产出接近学术水准（LVR、机制设计、MEV），且免费公开"
+    source: "Roughgarden 任其研究负责人"
+
+  # ---------- inst：传统金融机构 ----------
+    last_post_days: 0
+    rwa_ratio: 0.4
+    vetted_at: "2026-09-12"
+
+  - handle: "BlackRock"
+    name: "BlackRock"
+    tier: "inst"
+    covers: "BUIDL 发行方。Larry Fink 的代币化表态是行业风向标"
+    source: "BUIDL 经 Securitize 发行"
+    last_post_days: 1
+    rwa_ratio: 0.43
+    vetted_at: "2026-09-12"
+
+
+
+  - handle: "jpmorgan"
+    name: "J.P. Morgan"
+    tier: "watch"
+    covers: "Kinexys(原 Onyx)。银行系代币化存款的主要实践者"
+    source: "银行系代币化代表"
+    last_post_days: 2
+    rwa_ratio: 0.11
+    vetted_at: "2026-09-12"
+
 # ============================================================
 # 2026-09-12 体检移除（保留记录，避免重复调研）
 #
@@ -241,6 +314,17 @@ accounts:
 #                   "Top 5 RWA 影响力账号"榜单的来源
 #   ThorHartvigsen  连续多轮抓取 0 条，handle 疑似已改名/注销
 #   DanielGKuhn     记者，但抓到 12 条 RWA 占比 0% —— 体检拦下
+#
+# 2026-09-12 学术层体检结论（重要）：
+#   ciamac          LVR 论文作者，但 feed 在发纽约房产税/校务，不是研究 feed
+#   tim_roughgarden 在发共识协议暑期学校（CS 方向，非市场微观结构）
+#   nberpubs        10 条 0 条相关；工作论文流用户本就有，非差异化来源
+#   jpmorgan        企业营销号，Kinexys 的内容不在此 feed → 降 watch
+#   FTI_Global/DTCC handle 不存在，抓取 0 条
+#
+#   → 结论：严肃学术工作不以"推文"形式存在，它在工作论文和央行报告里。
+#     学术分区改为**主动检索**（SSRN/NBER/BIS/arXiv + WebSearch），
+#     不依赖账号推送。见 prompts/morning_digest.md 第四分区。
 #   andrebeganski   记者，RWA 占比 8% —— 体检拦下
 #
 # 早前排除（主题不符）:
