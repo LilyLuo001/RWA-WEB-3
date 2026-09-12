@@ -1,0 +1,58 @@
+# ============================================================
+# rwa-signal 核心配置
+# 改这里，不要改代码。
+# ============================================================
+
+# --- 你的账号定位（所有草稿都基于这段，务必写准） ---
+identity:
+  handle: ""                    # 你的 X handle，先留空
+  niche: "RWA / 真实世界资产代币化"
+  # 一句话说清"你凭什么在这个话题上发言"。
+  # 这条决定了神评论的角度——没有它，草稿只会是通用的聪明话。
+  angle: ""                     # 例："从传统金融合规视角拆解 RWA 项目的真实落地障碍"
+  own_content_language: "zh"    # 你自己发帖的语言：zh / en / both
+  avoid_topics: []              # 例：["价格预测", "喊单", "meme币"]
+
+# --- 评论机会筛选（comment_watch 用） ---
+comment_watch:
+  interval_minutes: 20          # cron 频率
+  max_post_age_minutes: 90      # 超过这个年龄的帖子不抢，位置已经没了
+  # 回复语言策略：match = 跟随原帖语言（推荐，符合评论区语境）
+  reply_language: "match"
+  drafts_per_opportunity: 3     # 每个机会给几条不同角度的草稿
+  # 打分门槛，0-100。低于此分不打扰你。
+  min_score: 62
+  scoring_weights:
+    velocity: 0.30              # 互动上升速度
+    reach: 0.20                 # 作者影响力
+    gap: 0.30                   # 评论区是否还有空位（最重要之一）
+    relevance: 0.20             # 与你 niche 的贴合度
+
+# --- 账号保护：冷启动限速（重要，别调高） ---
+# 新号高频互动是最快的封号路径。这是自我约束，不是平台限制。
+safety:
+  account_age_weeks: 0          # 你的账号开了几周
+  ramp_schedule:                # 每周每日回复上限，按周自动放宽
+    week_1: 3
+    week_2: 5
+    week_3: 8
+    week_4_plus: 12
+  min_gap_minutes: 25           # 两次回复之间的最小间隔
+  max_likes_per_day: 30         # 点赞也计入风控，别刷
+  never_reply_to: []            # 明确不碰的账号（例如已拉黑你的）
+
+# --- 晨报 ---
+digest:
+  schedule: "0 7 * * *"         # 每天 7:00（cron 表达式，本地时区）
+  lookback_hours: 24
+  hot_topic_window_hours: 168   # 叙事聚类看 7 天，才能发现"拐点"
+  max_topics: 6
+  content_angles_per_digest: 3
+
+# --- 热点/叙事检测 ---
+signal:
+  # "收敛"= 多少个互不相关的账号在同一时间窗说同一件事，才算真热点
+  convergence_min_accounts: 3
+  convergence_window_hours: 48
+  # 只统计这些互动量以上的帖子，避免噪音
+  min_engagement_for_signal: 20

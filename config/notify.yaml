@@ -1,0 +1,14 @@
+# 邮件推送配置（零预算）。
+# 发送路径（按顺序尝试）：
+#   gmail_app_password  → 你 Gmail 的应用密码（myaccount.google.com/apppasswords）
+#                         SMTP 发信，发件人就是你自己的 gmail。
+#                         密码存 macOS Keychain: "rwa-signal-gmail-app-password"
+#                         （命令: security add-generic-password -a lilysharp88 -s rwa-signal-gmail-app-password -w）
+notify:
+  to: "lilysharp88@gmail.com"
+  from: "lilysharp88@gmail.com"
+  method: "resend"
+  # 晨报每天发，机会提醒即时发（打到同一个邮箱）
+  daily_digest_hour: 7       # 本地时间
+  instant_opportunity: true  # 高分评论机会 → 立即邮件
+  instant_min_score: 72      # 分数门槛，低于不发

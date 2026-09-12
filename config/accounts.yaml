@@ -1,0 +1,119 @@
+# ============================================================
+# 监听名单（已核验，2026-09-11）
+# 每一条都有来源 URL。没核实过的 handle 不进这个文件。
+# ============================================================
+#
+# tier 说明（影响打分权重与推送优先级）:
+#   core   RWA 正核心，每条都看，最高优先级
+#   adj    相邻领域（DeFi/机构/合规），高相关时看
+#   data   数据源账号，用于热点检测而非评论机会
+#   zh     中文圈，你的主要互动池（若你用中文创作）
+
+accounts:
+  # ---------- data：数据/新闻源 ----------
+  - handle: "RWA_xyz"
+    name: "RWA.xyz"
+    tier: "data"
+    covers: "代币化 RWA 数据分析平台官方号，追踪链上国债/私募信贷等总量数据"
+    source: "https://x.com/RWA_xyz"
+
+  - handle: "RWAwatchlist_"
+    name: "Real World Asset Watchlist"
+    tier: "data"
+    covers: "RWA 每日新闻、数据与观点聚合"
+    source: "https://x.com/RWAwatchlist_"
+
+  # ---------- core：RWA 核心 ----------
+  - handle: "RWA_Alpha"
+    name: "RWA Alpha"
+    tier: "core"
+    covers: "RWA 赛道评论与账号盘点（发布过 Top 5 RWA Influencers 榜单）"
+    source: "https://x.com/RWA_Alpha/status/1906476248110440949"
+
+  - handle: "ZssBecker"
+    name: "ZssBecker"
+    tier: "core"
+    covers: "被 RWA_Alpha 列入 Top 5 RWA Influencers；市场观点+大胆判断"
+    followers: 1300000   # 来源称约 1.3M，未经第二来源核实
+    source: "https://x.com/RWA_Alpha/status/1906476248110440949"
+
+  # ---------- core：RWA 头部项目官方号 ----------
+  - handle: "Ondo"
+    name: "Ondo Finance"
+    tier: "core"
+    covers: "代币化国债/股票头部发行方（OUSG/USDY），RWA 叙事风向标"
+    source: "https://x.com/Ondo"
+
+  - handle: "Securitize"
+    name: "Securitize"
+    tier: "core"
+    covers: "BlackRock BUIDL 的代币化平台，监管合规向公告多"
+    source: "https://x.com/Securitize"
+
+  - handle: "centrifuge"
+    name: "Centrifuge"
+    tier: "core"
+    covers: "链上资产管理基础设施（JTRSY 等），Coinbase 战略投资"
+    source: "https://x.com/centrifuge"
+
+  - handle: "maplefinance"
+    name: "Maple Finance"
+    tier: "core"
+    covers: "链上信贷/机构借贷，机构级 RWA 叙事样本"
+    followers: 61400    # 来源搜索结果标注
+    source: "https://x.com/maplefinance"
+
+  # ---------- adj：相邻领域 ----------
+  - handle: "rwasummit"
+    name: "Real-World Asset Summit"
+    tier: "adj"
+    covers: "RWA 行业峰会官方号，行业人物观点转发密集"
+    source: "https://x.com/rwasummit"
+
+  - handle: "ThorHartvigsen"
+    name: "Thor Hartvigsen"
+    tier: "adj"
+    covers: "DeFi 研究员（DeFiLlama 背景），链上数据角度"
+    source: "https://x.com/XiongDa_CN/status/1780120425307222325"
+    note: "2026-09-11 连续 3 轮抓取 0 条——账号可能改名/受限，待人工核对 x.com/ThorHartvigsen 是否存在"
+
+  - handle: "arthur0x"
+    name: "Arthur (DeFi investor)"
+    tier: "adj"
+    covers: "加密/DeFi 投资人，DeFi 策略与市场结构观点"
+    source: "https://x.com/XiongDa_CN/status/1780120425307222325"
+
+  - handle: "TaschaLabs"
+    name: "Tascha"
+    tier: "adj"
+    covers: "经济学博士，从宏观/传统金融视角评论加密"
+    source: "https://x.com/XiongDa_CN/status/1780120425307222325"
+
+  # ---------- zh：中文互动池 ----------
+  - handle: "rwa_btc"
+    name: "RWA中文社區"
+    tier: "zh"
+    covers: "中文 RWA 社区，覆盖证券/房产/股权/黄金代币化"
+    source: "https://x.com/rwa_btc"
+
+  - handle: "0xNing0x"
+    name: "NingNing"
+    tier: "zh"
+    covers: "华语数据型研究：稳定币、CeDeFi、周期分析"
+    followers: 28000
+    source: "https://www.panewslab.com/zh/articles/7ot0943gl1do"
+
+  - handle: "BTCdayu"
+    name: "大宇"
+    tier: "zh"
+    covers: "华语头部加密 KOL，内容社区，泛市场话题"
+    source: "https://x.com/BiteyeCN/status/1816043435771744455"
+
+# ============================================================
+# 核验过但明确排除的（记录理由，避免下次重复调研）：
+#   hebi555 / lubi366 / gigiz_eth / yyds123888 / zhuanfgghjnb
+#     —— PANews 华语榜上榜，但主题是撸毛/空投/喊单，与 RWA niche 不符
+#     来源：同上 PANews 链接
+#   evilcos —— 安全领域（慢雾），非 RWA
+#   mert / saylor —— Kaito 榜单头部但属泛加密，非 RWA
+# ============================================================
