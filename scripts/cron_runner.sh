@@ -69,17 +69,42 @@ run_claude() {
     echo "❌ 找不到 claude CLI ($CLAUDE)，判断层无法执行"
     return 1
   fi
-  local out
-  out=$("$CLAUDE" -p "$(cat "$prompt_file")" \
-        --allowedTools "$TOOLS" \
-        --permission-mode acceptEdits \
-        --add-dir "$ROOT" 2>&1)
-  echo "$out" | tail -25
-  if echo "$out" | grep -q "$marker"; then
-    echo "✅ $marker"
-    return 0
-  fi
-  echo "⚠️  未见成功标记 $marker —— 判断层可能没跑完"
+  local out attempt
+  # 判断层会因额度/鉴权临时 403。静默失败的后果是"看起来在跑，其实什么都没产出"，
+  # 所以重试 + 失败必须可见。
+  for attempt in 1 2 3; do
+    out=$("$CLAUDE" -p "$(cat "$prompt_file")" \
+          --allowedTools "$TOOLS" \
+          --permission-mode acceptEdits \
+          --add-dir "$ROOT" 2>&1)
+    if echo "$out" | grep -q "$marker"; then
+      echo "$out" | tail -20
+      echo "✅ $marker"
+      return 0
+    fi
+    if echo "$out" | grep -qiE "403|rate limit|authenticate|usage limit|overloaded"; then
+      echo "⏳ 第 $attempt 次受限（$(echo "$out" | grep -oiE '40[0-9]|rate limit|usage limit' | head -1)），等待后重试"
+      sleep $((attempt * 120))
+      continue
+    fi
+    break
+  done
+  echo "$out" | tail -20
+  echo "⚠️  未见成功标记 $marker —— 判断层三次均未完成"
+  # 失败要让人知道，不然管道看起来在跑其实什么都没出
+  local stamp="state/last_judge_fail"
+  date +%s > "$stamp"
+  $VENV_PY - <<'PYEOF' 2>/dev/null || true
+import sys, pathlib
+sys.path.insert(0, "scripts")
+from notify import send_email
+send_email("⚠️ rwa-signal 判断层失败",
+           "claude -p 连续三次未完成。\n\n"
+           "常见原因：额度用尽 / 鉴权 403。\n"
+           "管道仍在抓数据，但晨报和评论草稿不会产出，直到判断层恢复。\n\n"
+           "自查：claude -p \"reply OK\" --max-turns 1\n"
+           "日志：data/cron.log")
+PYEOF
   return 1
 }
 
