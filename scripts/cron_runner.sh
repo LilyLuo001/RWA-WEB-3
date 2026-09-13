@@ -11,6 +11,26 @@ mkdir -p data
 exec >>"$LOG" 2>&1
 echo "=== $(date '+%Y-%m-%d %H:%M:%S') cron_runner $* ==="
 
+# ---- 代理自举（launchd 环境不继承用户 shell 的变量）----
+# 这台机器走本地 Clash。缺 http_proxy 时请求到不了 Anthropic API，
+# 而 CLI 把这个网络层拒绝显示成 "403 Request not allowed" ——
+# 看起来像额度用尽/鉴权失败，实际是没走代理。排查绕了很久，别再被误导。
+PROXY_URL="${HTTP_PROXY:-${http_proxy:-http://127.0.0.1:7890}}"
+proxy_up() {
+  local hostport="${PROXY_URL#*://}"
+  local host="${hostport%%:*}" port="${hostport##*:}"
+  port="${port%%/*}"
+  nc -z -G 2 "$host" "$port" >/dev/null 2>&1
+}
+if proxy_up; then
+  export http_proxy="$PROXY_URL"  https_proxy="$PROXY_URL"
+  export HTTP_PROXY="$PROXY_URL"  HTTPS_PROXY="$PROXY_URL"
+  export NO_PROXY="localhost,127.0.0.1"  no_proxy="localhost,127.0.0.1"
+else
+  echo "⚠️  代理 $PROXY_URL 不通。判断层和邮件推送很可能失败。"
+  echo "   若 Clash 已关闭或换了端口，改 PROXY_URL 或设置 HTTP_PROXY 环境变量。"
+fi
+
 VENV_PY=".venv/bin/python"
 CLAUDE="$HOME/.local/bin/claude"
 TOOLS="Read,Write,Edit,Glob,Grep,Bash,WebSearch,WebFetch"
@@ -94,8 +114,19 @@ $(cat "$prompt_file")
       echo "✅ $marker"
       return 0
     fi
-    if echo "$out" | grep -qiE "403|rate limit|authenticate|usage limit|overloaded"; then
-      echo "⏳ 第 $attempt 次受限（$(echo "$out" | grep -oiE '40[0-9]|rate limit|usage limit' | head -1)），等待后重试"
+    # 403 / "Request not allowed" 在这台机器上几乎总是代理没走通，
+    # 不是额度问题。盲目退避重试只会白等 6 分钟，先复查代理。
+    if echo "$out" | grep -qiE "403|Request not allowed|authenticate"; then
+      if ! proxy_up; then
+        echo "❌ 代理 $PROXY_URL 不通 —— 这就是 403 的真实原因，重试无意义。"
+        break
+      fi
+      echo "⏳ 第 $attempt 次 403（代理正常，可能确为限流），退避重试"
+      sleep $((attempt * 120))
+      continue
+    fi
+    if echo "$out" | grep -qiE "rate limit|usage limit|overloaded"; then
+      echo "⏳ 第 $attempt 次限流，退避重试"
       sleep $((attempt * 120))
       continue
     fi
@@ -112,9 +143,13 @@ sys.path.insert(0, "scripts")
 from notify import send_email
 send_email("⚠️ rwa-signal 判断层失败",
            "claude -p 连续三次未完成。\n\n"
-           "常见原因：额度用尽 / 鉴权 403。\n"
            "管道仍在抓数据，但晨报和评论草稿不会产出，直到判断层恢复。\n\n"
-           "自查：claude -p \"reply OK\" --max-turns 1\n"
+           "按可能性排序：\n"
+           "1) 代理没起来（最常见）。本机走 Clash 127.0.0.1:7890，\n"
+           "   launchd 环境不继承 shell 变量，缺代理时 CLI 会误报成 403。\n"
+           "   自查：nc -z 127.0.0.1 7890\n"
+           "2) 真的额度用尽。自查：\n"
+           "   http_proxy=http://127.0.0.1:7890 claude -p 'reply OK' --max-turns 1\n\n"
            "日志：data/cron.log")
 PYEOF
   return 1
