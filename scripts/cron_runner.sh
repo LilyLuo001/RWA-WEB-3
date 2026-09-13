@@ -176,9 +176,17 @@ case "${1:-}" in
     run_claude prompts/morning_digest.md "DIGEST_OK"
     ;;
   follow)
-    # 每日一批。冷号安全节奏：每天 ≤8 个，不是每 2 小时一批。
+    # 关注 accounts.yaml 里已有但还没关注的。名单关完后这里会空转 ——
+    # 真正持续新增靠 discover。
     acquire_lock 600 || exit 0
     $VENV_PY scripts/follow_list.py --max 8
+    ;;
+  discover)
+    # 每 2 小时：从真实对话里挖新账号 → 体检 → 通过才关注。
+    # 天然限速：瓶颈是"有没有挖到够格的人"，不是关注频率，
+    # 所以既满足每 2 小时新增，又不会把冷号刷爆。日上限 12。
+    acquire_lock 600 || exit 0
+    $VENV_PY scripts/discover_accounts.py --run --max 3 --daily-cap 12
     ;;
   status)
     acquire_lock 300 || exit 0

@@ -109,7 +109,8 @@
 | fetch | 20 分钟 | 抓 30 个账号 |
 | comment_watch | 2 小时 | 抓取 + 调用你 → 草稿，≥72 分发邮件 |
 | digest | 每天 07:05 | 抓取 + 调用你 → 晨报发邮件 |
-| follow | 每天 09:30 | 关注名单里未关注的（≤8/批） |
+| **discover** | **2 小时** | **挖新账号 → 体检 → 通过才关注（日上限 12）** |
+| follow | 每天 09:30 | 关注名单里已有但未关注的（名单关完会空转） |
 | status | 每天 23:00 | 会话健康 + 额度统计 |
 
 **为什么不用 cron**：macOS 睡眠时 cron 不补跑，launchd 唤醒后会补。
@@ -233,7 +234,29 @@ stdout 打印 `WATCH_OK <数量>`。
 `dry_run` 和 `follow`。发送链路（浏览器通道、quote、thread）只过了编译和 dry-run。
 **第一次真实发送时要格外小心，逐步验证。**
 
-## D. 扩充名单（正确方法）
+## D. 扩充名单（已自动化，每 2 小时一轮）
+
+`discover_accounts.py` 已接入 launchd，每 2 小时自动跑完整闭环：
+挖掘 → 加候选 → 抓取 → 体检 → 通过则关注 / 未过则移出并拉黑。
+
+**天然限速**：瓶颈是"有没有挖到够格的人"，不是关注频率。
+所以既满足每 2 小时新增，又不会把冷号刷爆。日上限 12（`--daily-cap`）。
+
+打分 = 提及次数 × 提及者 tier 权重（reg/acad 3.0 > kol 2.5 > data/inst 1.5
+> issuer/zh 1.0 > watch 0.4）。
+
+⚠️ **两道必需的闸门，少一道就会灌垃圾**：
+1. **相关性闸门**：只统计出现在**主题相关推文**里的提及。
+   没有它，@IMFNews 这类什么都发的账号会把候选灌满欧盟入盟论文、
+   非洲 AI、泰国央行 —— 而且因 acad 权重高，排名还很靠前。
+   实测：加闸门后候选从 33 个降到 7 个，且全部相关。
+2. **黑名单**（`state/rejected.json`）：体检未过的记下来，不再重复抓取。
+
+手动跑：
+```bash
+.venv/bin/python scripts/discover_accounts.py            # 只看挖到谁
+.venv/bin/python scripts/discover_accounts.py --run --max 3
+```
 
 **不要抄榜单。** 第一版名单就是抄来的，15 个里 4 个死号（最久 923 天没发帖），
 2 个活跃但一条 RWA 都不发。而讽刺的是，那份"Top 5 RWA 影响力"榜单的
@@ -370,6 +393,7 @@ cd ~/rwa-signal
 .venv/bin/python scripts/follow_list.py --max 8                  # 关注一批
 
 # 定时任务手动触发
+bash scripts/cron_runner.sh discover        # 挖新账号并关注
 bash scripts/cron_runner.sh digest          # 出晨报并发邮件
 bash scripts/cron_runner.sh comment_watch   # 扫机会出草稿
 bash scripts/cron_runner.sh status          # 健康检查

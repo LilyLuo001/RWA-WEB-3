@@ -114,7 +114,7 @@ accounts:
     tier: "data"
     covers: "行业峰会官方号，会前会后密集转发从业者观点，是挖新人的入口"
     source: "https://x.com/rwasummit"
-    last_post_days: 11
+    last_post_days: 12
     rwa_ratio: 0.8
     vetted_at: "2026-09-13"
 
@@ -125,7 +125,7 @@ accounts:
     covers: "华语头部加密 KOL。发帖极频繁但主题是 meme 币/生活，RWA 占比 13%"
     source: "https://x.com/BiteyeCN/status/1816043435771744455"
     last_post_days: 0
-    rwa_ratio: 0.1
+    rwa_ratio: 0.09
     vetted_at: "2026-09-13"
     note: "降级为 watch：用于感知华语圈情绪，不是评论目标"
 
@@ -207,7 +207,7 @@ accounts:
     covers: "Laura Shin 的播客。RWA 高管访谈的主要出口，是挖新人的入口"
     source: "被 @Securitize 提及"
     last_post_days: 0
-    rwa_ratio: 0.25
+    rwa_ratio: 0.22
     vetted_at: "2026-09-13"
 
   # ---------- reg：监管一手信源（2026-09-12 挖掘）----------
@@ -373,4 +373,16 @@ accounts:
 # 待补（下一步）: kol 层只有 2 个，太薄。扩充方向见 HANDOFF.md
 #   —— 从 arthur0x / rwasummit 的回复对象和被引用者里挖真人，
 #      而不是再去抄榜单。目标 8-12 个 kol，优先 5K-50K 粉。
+  # ---------- 自动发现（discover_accounts.py）----------
+
+  - handle: "RwaLlama"
+    name: "RwaLlama"
+    tier: "candidate"
+    covers: "自动发现，待体检。被 @carlosdomingo 提及 1 次"
+    source: "@提及挖掘：「背包代币不是权利，无论宣传告诉你什么， @RwaLlama  更清楚。」"
+    last_post_days: 0
+    rwa_ratio: 0.3
+    vetted_at: "2026-09-13"
+
+
 # ============================================================
