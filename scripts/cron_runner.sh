@@ -181,6 +181,13 @@ case "${1:-}" in
     acquire_lock 600 || exit 0
     $VENV_PY scripts/follow_list.py --max 8
     ;;
+  like)
+    # 每 2 小时：给名单里值得的帖子点赞。
+    # ⚠️ 点赞是公开的 —— 只赞 kol/reg/acad/issuer/inst/data，跳过 watch，
+    # 政治内容一律不赞（公开点赞=站队，对专业形象是实打实的风险）。
+    acquire_lock 600 || exit 0
+    $VENV_PY scripts/like_recent.py --hours 24 --max 5 --yes
+    ;;
   discover)
     # 每 2 小时：从真实对话里挖新账号 → 体检 → 通过才关注。
     # 天然限速：瓶颈是"有没有挖到够格的人"，不是关注频率，

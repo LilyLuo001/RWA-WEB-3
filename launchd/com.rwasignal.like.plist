@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.rwasignal.like</string>
+  <key>ProgramArguments</key>
+  <array><string>/bin/bash</string><string>/Users/lilyluo/rwa-signal/scripts/cron_runner.sh</string><string>like</string></array>
+  <key>EnvironmentVariables</key>
+  <dict><key>PATH</key><string>/Users/lilyluo/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key><string>/Users/lilyluo</string></dict>
+  <key>WorkingDirectory</key><string>/Users/lilyluo/rwa-signal</string>
+  <key>StartInterval</key><integer>7200</integer>
+  <key>StandardOutPath</key><string>/Users/lilyluo/rwa-signal/data/launchd.log</string>
+  <key>StandardErrorPath</key><string>/Users/lilyluo/rwa-signal/data/launchd.log</string>
+</dict></plist>

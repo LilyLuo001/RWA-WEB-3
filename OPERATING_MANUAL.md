@@ -110,6 +110,7 @@
 | comment_watch | 2 小时 | 抓取 + 调用你 → 草稿，≥72 分发邮件 |
 | digest | 每天 07:05 | 抓取 + 调用你 → 晨报发邮件 |
 | **discover** | **2 小时** | **挖新账号 → 体检 → 通过才关注（日上限 12）** |
+| **like** | **2 小时** | **给名单值得的帖子点赞（日上限 30）** |
 | follow | 每天 09:30 | 关注名单里已有但未关注的（名单关完会空转） |
 | status | 每天 23:00 | 会话健康 + 额度统计 |
 
@@ -220,7 +221,24 @@ centrifuge / arthur0x / Observatory13 等**原文是英文，草稿必须用英�
 完成后写 `data/drafts/YYYY-MM-DD-HHMM-<handle>.json`，≥72 分发提醒邮件，
 stdout 打印 `WATCH_OK <数量>`。
 
-## C. 发布（她确认后）
+## C. 自动点赞（已自动化，每 2 小时）
+
+`like_recent.py`，日上限 30（`settings.yaml: max_likes_per_day`），
+走 `check_safety` 同一道闸门，每次间隔随机 20-70 秒（匀速是机器人特征）。
+
+⚠️ **点赞是公开的，任何人都能查她赞过什么。** 所以有四道筛选：
+1. **tier 白名单**：只赞 kol/reg/acad/issuer/inst/data/zh，**跳过 watch**
+   （赞 @BTCdayu 的 meme 币帖会直接拆掉她正在建的严肃分析者定位）
+2. **政治内容一律不赞** —— 公开点赞等于站队。实测 @a16zcrypto 发过
+   "每一个美国公民，无论政治立场如何…"，这种绝不能赞
+3. **必须命中核心词**（代币化/链上/稳定币…）。泛金融词不够 ——
+   实测 @IMFNews 讲亚洲增长、欧盟入盟的帖会因"机构"命中而漏进来
+4. 原帖至少 3 个赞（太冷清的赞了没意义）、非转发、正文 ≥25 字
+
+2026-09-13 首次真实执行 3 条并独立复核（testid=unlike 确认）。
+这是本系统**第一次真实写操作**。
+
+## D. 发布（她确认后）
 
 ```bash
 .venv/bin/python scripts/publish.py --draft <草稿id> --pick A          # dry-run
@@ -230,11 +248,13 @@ stdout 打印 `WATCH_OK <数量>`。
 限速闸门在 `common.check_safety`，**不要绕过**（`--force` 会记审计日志）。
 冷号第 1 周每天回复上限 3 条，按周放开到 12。点赞 ≤30/天。
 
-⚠️ **截至 2026-09-13，一条内容都没真实发送过。** `audit.jsonl` 只有
-`dry_run` 和 `follow`。发送链路（浏览器通道、quote、thread）只过了编译和 dry-run。
+⚠️ **截至 2026-09-13，一条内容（回复/发帖）都没真实发送过。**
+`audit.jsonl` 只有 `dry_run` / `follow` / `like`。
+发帖链路（浏览器通道、quote、thread）只过了编译和 dry-run。
 **第一次真实发送时要格外小心，逐步验证。**
+（点赞链路已在 09-13 验证通过，可作为参考。）
 
-## D. 扩充名单（已自动化，每 2 小时一轮）
+## E. 扩充名单（已自动化，每 2 小时一轮）
 
 `discover_accounts.py` 已接入 launchd，每 2 小时自动跑完整闭环：
 挖掘 → 加候选 → 抓取 → 体检 → 通过则关注 / 未过则移出并拉黑。
@@ -394,6 +414,8 @@ cd ~/rwa-signal
 
 # 定时任务手动触发
 bash scripts/cron_runner.sh discover        # 挖新账号并关注
+bash scripts/cron_runner.sh like            # 点赞一轮
+.venv/bin/python scripts/like_recent.py     # 只看会赞什么（dry-run）
 bash scripts/cron_runner.sh digest          # 出晨报并发邮件
 bash scripts/cron_runner.sh comment_watch   # 扫机会出草稿
 bash scripts/cron_runner.sh status          # 健康检查
